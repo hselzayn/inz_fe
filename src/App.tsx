@@ -15,6 +15,8 @@ function App() {
   const [question,setQuestion] = useState<string>('');
   const [conversation, setConversation] = useState<ConversationTurn[]>([]);
   const [selectedTurnIndex, setSelectedTurnIndex] = useState<number | null>(null);
+  const [password,setPassword] = useState('');
+  const [hasAuthError, setHasAuthError] = useState(false);
   // const [answer, setAnswer] = useState<string>('');
   // const[matchedChunks,setMatchedChunks] = useState<Chunk[]>([])
   const [loading, setLoading] = useState<boolean>(false);
@@ -24,10 +26,17 @@ function App() {
     try {
       const req_time = Date.now();
       console.log(req_time);
-      const res = await axios.post('http://localhost:8000/query',{question});
+      console.log(password);
+      const res = await axios.post('http://localhost:8000/query',{question},
+        {
+          headers:{
+            'x-auth-password':password
+          }
+        }
+      );
       console.log('response received; time elapsed: ');
       console.log(Date.now()-req_time);
-
+      setHasAuthError(false);
       const newTurn: ConversationTurn = {
         question,
         answer: res.data.gpt_answer,
@@ -39,7 +48,12 @@ function App() {
       setQuestion('');
 
     } catch (err: any){
+      if (err.response?.status ===401){
+        setHasAuthError(true);
+      }else{
+
       console.error(err);
+      }
       // setAnswer("Error: "+(err.response?.data?.detail || "Something went wrong"));
       // setMatchedChunks([]);
     }finally{
@@ -48,6 +62,21 @@ function App() {
   }
   return (
     <div className="app">
+      <div style={{ marginBottom: '1rem' }}>
+  <label>
+    🔐 API Password:
+    <input
+      type="password"
+      value={password}
+      onChange={(e) => setPassword(e.target.value)}
+      placeholder="Enter password"
+      style={{ marginLeft: '0.5rem' }}
+    />
+  </label>
+  {hasAuthError && (
+    <p style={{ color: 'red' }}>❌ Invalid password — try again.</p>
+  )}
+</div>
       <h1> Insurance Assistant</h1>
       <form onSubmit={handleSubmit}>
         <input
